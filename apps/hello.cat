@@ -1,8 +1,10 @@
 #name "Hello World"
 
 clear
-text 0 3 "Hello CatOS!"
-text 0 5 "From App Store"
+set_cursor 0 3
+print "Hello CatOS!"
+set_cursor 0 5
+print "From App Store"
 update
 delay 3000
 exit
