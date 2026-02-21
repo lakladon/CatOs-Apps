@@ -1,0 +1,10 @@
+{
+    "version": 1,
+    "apps": [
+        {
+            "name": "Hello World",
+            "file": "hello.cat",
+            "desc": "Тестовое приложение"
+        }
+    ]
+}
