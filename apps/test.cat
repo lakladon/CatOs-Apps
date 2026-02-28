@@ -2,7 +2,7 @@
 
 clear
 set_cursor 0 3
-print "test deploy!"
+print "Test"
 set_cursor 0 5
 print "From App Store"
 update
