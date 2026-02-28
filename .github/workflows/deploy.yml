@@ -2,8 +2,10 @@ name: Generate Index Release
 
 on:
   push:
+    branches:
+      - main
     tags:
-      - 'v*' # Запуск при создании тега (v1.0, v1.1 и т.д.)
+      - 'v*'
 
 permissions:
   contents: write
