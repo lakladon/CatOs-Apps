@@ -1,9 +1,9 @@
-name: Generate Index Release
+name: Production App Release
 
 on:
   push:
     tags:
-      - 'v*' # Запуск при создании тега (v1.0, v1.1 и т.д.)
+      - 'v*' # Срабатывает на v1.0, v2.1.4 и т.д.
 
 permissions:
   contents: write
@@ -15,43 +15,62 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Generate Dynamic index.json
+      - name: Generate Versioned Index
+        id: prep
         shell: python
         run: |
           import os
           import json
+          import sys
 
           apps_dir = 'apps'
-          apps_list = []
+          # Получаем версию из тега (например, v1.0.3)
+          tag_version = os.getenv('GITHUB_REF_NAME', '1.0.0').replace('v', '')
           
-          # Проверяем наличие папки apps в репозитории
+          apps_list = []
+          files_to_upload = ['index.json']
+          
           if os.path.exists(apps_dir):
-              # Ищем все файлы .cat
-              files = [f for f in os.listdir(apps_dir) if f.endswith('.cat')]
-              for f_name in files:
+              # Сканируем .cat файлы
+              cat_files = [f for f in os.listdir(apps_dir) if f.endswith('.cat')]
+              for f_name in cat_files:
+                  full_path = os.path.join(apps_dir, f_name)
+                  files_to_upload.append(full_path)
+                  
+                  # Формируем запись для каждого приложения
                   apps_list.append({
                       "name": f_name.replace('.cat', '').replace('_', ' ').capitalize(),
-                      "file": f"apps/{f_name}",
-                      "desc": f"Приложение {f_name}"
+                      "file": f_name,
+                      "desc": f"Версия приложения из релиза {tag_version}"
                   })
 
-          data = {
-              "version": 1,
+          # Создаем итоговый JSON
+          index_data = {
+              "version": int(tag_version.split('.')[0]), # Мажорная версия из тега
+              "string_version": tag_version,
               "apps": apps_list
           }
 
           with open('index.json', 'w', encoding='utf-8') as f:
-              json.dump(data, f, ensure_ascii=False, indent=4)
+              json.dump(index_data, f, ensure_ascii=False, indent=4)
+          
+          # Записываем список файлов для следующего шага GitHub Actions
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+              f.write(f"artifacts={' '.join(files_to_upload)}\n")
 
-      - name: Zip Apps Folder
-        run: zip -r apps.zip apps/ # На всякий случай упакуем и сами файлы
-
-      - name: Upload to Release
+      - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: |
-            index.json
-            apps.zip
-          body: "Автоматически сгенерированный индекс приложений."
+          files: ${{ steps.prep.outputs.artifacts }}
+          name: "Release ${{ github.ref_name }}"
+          body: |
+            ### Обновление приложений
+            Автоматическая сборка для версии ${{ github.ref_name }}.
+            
+            Список файлов в релизе:
+            - index.json (список всех приложений)
+            - Файлы .cat из папки apps
+          draft: false
+          prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
